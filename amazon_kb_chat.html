@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>亚马逊运营知识库</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3347;
+    --accent: #5b6ef5;
+    --accent-light: #7b8fff;
+    --accent-dim: rgba(91,110,245,0.15);
+    --text: #e8eaf6;
+    --text-muted: #8b91b0;
+    --text-dim: #5a607a;
+    --user-bg: #1e2240;
+    --ai-bg: #191c2c;
+    --tag-bg: rgba(91,110,245,0.12);
+    --tag-border: rgba(91,110,245,0.3);
+    --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans SC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .logo {
+    width: 34px; height: 34px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .header-info h1 { font-size: 15px; font-weight: 700; letter-spacing: .02em; }
+  .header-info p { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+  .status {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--green);
+  }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100%{opacity:1} 50%{opacity:.4}
+  }
+
+  /* Suggested questions */
+  .suggestions {
+    padding: 16px 24px 8px;
+    flex-shrink: 0;
+    background: var(--bg);
+  }
+  .suggestions-label {
+    font-size: 11px; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: .08em;
+    margin-bottom: 8px;
+  }
+  .tags {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .tag {
+    font-size: 12px; padding: 5px 12px;
+    background: var(--tag-bg);
+    border: 1px solid var(--tag-border);
+    border-radius: 20px;
+    color: var(--accent-light);
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .tag:hover {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  /* Chat area */
+  .chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scroll-behavior: smooth;
+  }
+  .chat::-webkit-scrollbar { width: 4px; }
+  .chat::-webkit-scrollbar-track { background: transparent; }
+  .chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* Messages */
+  .msg { display: flex; gap: 10px; max-width: 100%; animation: fadein .2s ease; }
+  @keyframes fadein { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+  .msg.user { flex-direction: row-reverse; }
+
+  .avatar {
+    width: 30px; height: 30px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; flex-shrink: 0; margin-top: 2px;
+  }
+  .avatar.ai { background: var(--accent); color: #fff; }
+  .avatar.user { background: var(--surface2); color: var(--text-muted); }
+
+  .bubble {
+    max-width: 75%;
+    padding: 12px 16px;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .msg.ai .bubble {
+    background: var(--ai-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px 14px 14px 14px;
+    color: var(--text);
+  }
+  .msg.user .bubble {
+    background: var(--user-bg);
+    border: 1px solid rgba(91,110,245,.2);
+    border-radius: 14px 4px 14px 14px;
+    color: var(--text);
+  }
+
+  /* Markdown-ish rendering */
+  .bubble strong { color: #fff; font-weight: 600; }
+  .bubble em { color: var(--accent-light); font-style: normal; }
+  .bubble .formula {
+    display: inline-block;
+    background: rgba(255,255,255,.06);
+    border: 1px solid var(--border);
+    padding: 1px 7px;
+    border-radius: 5px;
+    font-family: monospace;
+    font-size: 13px;
+    color: #a5f3fc;
+  }
+  .bubble ul { padding-left: 18px; margin: 6px 0; }
+  .bubble li { margin: 3px 0; }
+  .bubble p + p { margin-top: 8px; }
+  .bubble .section-title {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-top: 10px;
+    margin-bottom: 4px;
+  }
+
+  /* Typing indicator */
+  .typing { display: flex; gap: 4px; padding: 4px 0; }
+  .typing span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-muted);
+    animation: bounce 1.2s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: .2s; }
+  .typing span:nth-child(3) { animation-delay: .4s; }
+  @keyframes bounce {
+    0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)}
+  }
+
+  /* Input area */
+  .input-area {
+    padding: 14px 24px 20px;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .input-wrap {
+    display: flex; gap: 10px; align-items: flex-end;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 10px 14px;
+    transition: border-color .15s;
+  }
+  .input-wrap:focus-within {
+    border-color: var(--accent);
+  }
+  textarea {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    resize: none;
+    min-height: 22px;
+    max-height: 120px;
+    line-height: 1.6;
+  }
+  textarea::placeholder { color: var(--text-dim); }
+  .send-btn {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    transition: all .15s;
+    flex-shrink: 0;
+  }
+  .send-btn:hover { background: var(--accent-light); transform: scale(1.05); }
+  .send-btn:disabled { background: var(--surface2); color: var(--text-dim); cursor: not-allowed; transform: none; }
+  .hint { font-size: 11px; color: var(--text-dim); text-align: center; margin-top: 8px; }
+
+  /* Welcome */
+  .welcome {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 40px 20px;
+    text-align: center;
+    gap: 10px;
+  }
+  .welcome-icon { font-size: 40px; }
+  .welcome h2 { font-size: 18px; font-weight: 700; }
+  .welcome p { font-size: 14px; color: var(--text-muted); max-width: 360px; line-height: 1.6; }
+
+  @media (max-width: 600px) {
+    .header, .suggestions, .chat, .input-area { padding-left: 14px; padding-right: 14px; }
+    .bubble { max-width: 90%; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">📦</div>
+  <div class="header-info">
+    <h1>亚马逊运营知识库</h1>
+    <p>基于专业运营思维导图 · AI 问答</p>
+  </div>
+  <div class="status">
+    <div class="status-dot"></div>
+    在线
+  </div>
+</div>
+
+<div id="quota-bar" style="text-align:right;padding:6px 24px 0;flex-shrink:0;background:var(--bg)"></div>
+<div class="suggestions">
+  <div class="suggestions-label">快速提问</div>
+  <div class="tags" id="tags">
+    <div class="tag" onclick="ask(this)">ACOS 高怎么办？</div>
+    <div class="tag" onclick="ask(this)">SP / SB / SD 广告有什么区别？</div>
+    <div class="tag" onclick="ask(this)">关键词精准、词组、广泛匹配区别</div>
+    <div class="tag" onclick="ask(this)">广告归因期是多少天？</div>
+    <div class="tag" onclick="ask(this)">怎么搭建关键词全词表？</div>
+    <div class="tag" onclick="ask(this)">卡位操作怎么做？</div>
+    <div class="tag" onclick="ask(this)">CTR 低怎么优化？</div>
+    <div class="tag" onclick="ask(this)">新品测款期广告策略</div>
+  </div>
+</div>
+
+<div class="chat" id="chat">
+  <div class="welcome">
+    <div class="welcome-icon">🗺️</div>
+    <h2>亚马逊运营智能问答</h2>
+    <p>我已读取完整的亚马逊运营思维导图，涵盖广告逻辑、数据指标、关键词策略、Listing打造等模块，随时问我。</p>
+  </div>
+</div>
+
+<div class="input-area">
+  <div class="input-wrap">
+    <textarea id="input" placeholder="输入你的问题，例如：ACOS 高了怎么分析？" rows="1"
+      onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+    <button class="send-btn" id="sendBtn" onclick="sendMsg()" title="发送">
+      ↑
+    </button>
+  </div>
+  <div class="hint">基于你的亚马逊运营思维导图 · 所有回答均来自文档内容</div>
+</div>
+
+<script>
+const KB = "采购\n发货\n运营\n  Listing打造\n    图片\n      AI提炼卖点\n      文案设计\n    文案\n      AI\n      五点\n      详情/A+\n      ST\n    视频\n      AI\n  推广\n    流量来源\n      站内\n        关键词\n          关键词权重\n          坑位\n          坑产\n          广告词\n            标品、有准词\n            准词预期坑产\n            营利型广告做实际坑产\n            放大利润\n            非标、泛词多\n            营利型广告为主\n            盈利型广告做实际坑产拉动收录词\n            站内收录+站外单量+站内盈利广告\n            大词带小词\n            小词带大词\n          广告触发\n            被动触发-SP/SB/SBV\n            必要条件：买家搜索ABC\n            系统遍历整个广告系统中能触发ABC的投放词\n            AB广泛\n            ABC广泛\n            ABC精准\n            自动\n            所有投放根据adrank进行排序\n            同ASIN在同结果下只能出现一次，剔除重复排序的投放\n            同一关键词下SP广告位的竞争关系\n            同一页面存在竞争关系\n            同一类型\n            广告出现形成曝光\n            搜索结果页面\n            商品详情页\n            ASIN1\n            ASIN2\n            ASIN3\n            广告被点击后收费\n            主动触发SD/Promts\n        自然流量\n          打广告就能提升自然位吗?我的广告位要在自然位之前吗?广告一定能带动自然流量吗\n            链接质量、看排名、瓶颈\n          关键词搜索\n            有效搜索关键词\n            相关性，有流量\n            有效位置\n            流量高，首页\n          亚马逊推荐(有条件)\n          品牌旗舰店\n        广告流量\n          理论知识\n            广告类型\n            SP (Sponsored Products)\n            商品定向\n            自动广告\n            亚马逊根据listing内容寻找搜索词和潜在客户\n            紧密匹配\n            匹配逻辑：高度相关的词\n            搜索词类型:核心大词：高相关的长尾词;单复数\n            宽泛匹配\n            匹配逻辑：主题相关词\n            搜索词类型：近义词；拼写错误；泛词\n            同类匹配\n            匹配逻辑：高度相似商品\n            商品类型：直接竞品\n            关联匹配\n            匹配逻辑：互补商品、经常一起购买商品\n            商品类型：互补商品、跨品类关联、看了又看\n            手动广告\n            关键词投放Keyword\n            关键词精准匹配\n            与投放关键词一致，词序不变，不能插入其他词，不能有词根拆分，可以有单复数，介词连词AB AB ABs AsB women woman A\n            关键词词组匹配\n            包含投放关键词，且保持词序不变，在关键词前后可以添加其他词;可以有单复数，介词连词\n            AB CAB ABC CDAB ABCD for With\n            关键词广泛匹配\n            包含投放关健词的所有词根，不限制词序，允许中间插入其他词。本词、同义词、单复数、拼写错误 AB ACB CAB ABC CDAB\n            商品投放\n            商品定位\n            同款(替代品)\n            弱竞品\n            优势维度：价格、配置、功能、星级、评分数量\n            更高价更低配置\n            同配置更高价\n            同价低配置\n            低配置低价竞品\n            多功能同配置高价竞品\n            多功能低配高价竞品\n            低/少评分类似商品\n            强竞品\n            互补品\n            乒乓球 乒乓球拍\n            类目定位\n            SB (Sponsored Brands)\n            品牌定向\n            商品集：3个ASIN+品牌logo+标题\n            旗舰店\n            视频SBV\n            SD (Sponsored Display)\n            广告出现在站内或站外\n            商品定向：投竞品/互补品/类目\n            受众定向：再营销(浏览/加购/购买)；兴趣/生活方式\n            Rufus测试中\n            广告位置\n            按广告类型分\n            SP\n            搜索结果页Result：顶部、中部、底部\n            展现形式:单个商品，包含图片、标题、价格、Prime标识;带sponsored标识\n            顶部\n            中部穿插\n            商品详情页：Products related to this item\n            展现形式：多个商品轮播\n            SB\n            搜索结果页：顶部；中部；底部\n            展现形式：品牌标识+宣传标题+落地3个商品页面\n            展现形式：品牌标识+宣传标题+落地旗舰店\n            展现形式：品牌标识+视频+商品\n            商品详情页：顶部横幅(移动端)；中下部，A+/评论上方；底部\n            SBV\n            搜索结果页\n            展现形式：广告视频+单个商品\n            商品详情页：评论上方\n            SD\n            搜索结果：电脑端右侧，手机端中部/底部\n            展现形式：基于用户行为展现单张大图或商品图\n            SDV\n            落地页有蓝色shopnow按钮\n            排名\n            出价*广告质量得分\n            广告质量得分-CTR、CVR、关键词相关性、广告历史表现\n            互抢广告位，价格内卷\n            SP广告在同一个页面，同一个广告板块，只能出现一次\n            广告数据指标\n            曝光量(Impressions)\n            含义：广告在买家搜索结果页、产品详情页等位置展示的总次数\n            算法逻辑：近实时无归因期，加载成功即算曝光，数据虚高\n            影响因素\n            1.预算(可能性比较低) 2.竞价 3.广告活动竞争\n            曝光量低的调整措施：提高cpc\n            TOSIS/TOS Impression Share\n            首页首位广告市占率(抢广告位第一的能力)\n            低：竞争力不足\n            1.预算不足 2.竞价不足 3.广告质量分低\n            点击量(click)\n            含义：点击广告的总次数\n            本质：连接曝光和转化的桥梁\n            公式1：点击量=曝光量*CTR\n            公式2：广告花费=点击量*CPC=曝光量*CTR*CPC\n            公式3：订单数=点击量*CVR=曝光量*CTR*CVR\n            影响因素：1.曝光量 2.广告位 3.关键词/商品相关性 4.图片是否吸睛 5.标题是否清晰 6.价格有无竞争力 7.星级和评论数量 8.销量 9.是否有标签(AC、Bestseller、Coupon、Prime等)\n            提高点击的措施：1.提cpc 2.投放相关高的词 3.优化图片 4.优化标题 5.优化价格 6.提高销量 7.标签维护\n            Bid\n            本质：报价单。体现出价上限\n            主要用于TOS/ROS/PP三个广告位\n            CPC (Cost Per Click)\n            本质：交易结果，体现实际扣费。衡量广告竞争强度\n            实际CPC=cost/click\n            最高CPC=底cpc*(1+bid)\n            亚马逊使用二次价格机制，实际CPC=(第二名的出价×第二名的质量得分)÷你的质量得分+$0.01\n            如何降低cpc：主观降低底cpc、提高广告质量分\n            CTR (Click Through Rate)\n            本质：衡量广告展示层的吸引力\n            公式：CTR=click/impression 点击率=点击量/曝光量\n            提高ctr的措施：1.提高排名增加有效曝光 2.提高点击量\n            CVR(Conversion Rate)\n            本质：衡量广告内容和落地页(如商品详情页)的质量\n            公式：CVR=order/click 转化率=订单数/点击次数\n            影响因素：1.综合价格有无优势 2.图片、视频、文字是否解决顾客疑虑 3.买家评论 4.是否有标签 5.红人视频 6.竞品 7.配送速度FBM/FBA 8.归因期\n            提高cvr的措施：1.保证价格优势 2.优化listing 3.领星索评 4.保证产品质量降低退货 5.影响者活动 6.FBA全网配送\n            ACOS (Ads Cost of Sale)\n            本质：衡量广告盈利情况\n            公式：ACOS=(cpc*click)/(click*cvr*price) = cpc/(cvr*price)\n            广告花费/广告销售额\n            影响因素：1.客单价 2.转化率 3.CPC 4.关键词精准度 5.广告位 6.归因期 7.季节因素\n            降低acos的措施：1.可尝试提价;A+关联高价组合捆绑 2.提高cvr 3.降低cpc 4.否定不相关无转化词和商品 5.7-14天调广告 6.低cpc跑广告或关闭\n            ACOS高一定要降低cpc或关闭广告吗：1.看广告目的 2.看花费 3.等广告归因 4.看关键词排名\n            TACOS (Total ACOS)\n            本质：衡量整体盈利情况\n            公式：TACOS=广告花费/总销售额 = 广告花费/(自然单+广告单)*售价\n            降低TACOS的措施：降低acos、提高自然位排名\n            ASoAS (Ads Sales of All Sales)\n            本质：衡量对广告的依赖程度，链接风险\n            广告销售额/总销售额\n            降低ASoAS的措施：提高自然排名，增加自然单\n            RoAS (Return On Advertising Spend)\n            本质：衡量广告投入产出比\n            RoAS=cvr*price/cpc = 1/ACOS\n            广告支出回报率=广告销售额/广告花费\n            CPO (Cost Per Order)\n            本质：衡量出单效率\n            公式：CPO=cpc/cvr 获取一笔订单需要的花费=广告花费/广告单量\n            如何降低CPO：cpc降低、cvr提高\n            CPM (Cost Per Mille)\n            本质：衡量曝光效率\n            广告被看到1000次需要花多少钱\n            曝光即花钱，适合推广品牌知名度和拉新客，不太适合追求出单\n            广告归因\n            逻辑：用户点击广告后，在指定时间窗口内产生的订单，都算在这个广告头上\n            模型：最终点击归因，只归因给最后一次点击的广告\n            归因期：SP 7天；SB、SBV、SD 14天\n            订单有延迟，7天前的数据比7天内的数据更准确\n            ACOS修正：利用历史cvr预估当天正常的ACOS\n            例：泛词广告 0.2/10%*6.99=28.6%；准词广告 0.6/40%*6.99=21.4%\n            预估最终ACOS=当天正常的ACOS×当天订单占比\n            假设当天订单占比90%：28.6%*90%=25.7%；21.4%*90%=19.2%\n            归因类型：点击归因(权重最高，SP/SB核心归因)；浏览归因(主要用于SD)\n            归因范围：直接订单(买了广告投放ASIN)；间接订单(买了非广告投放ASIN)\n            广告阶段\n            测款期：产品刚上架，还没有足够数据的初始阶段\n            放量期：通过测款验证，开始放大流量和销量，抢占核心关键词排名\n            稳定期：自然排名进入首页或前列，销量稳定，开始追求利润\n            盈利期：处于类目头部，品牌效应明显，自然流量主导\n            清库期：产品即将下架、换季、停售或库存积压，需要快速清理库存\n          广告策略\n            策略姿态\n            阶段策略\n          架构搭建\n            数据整理\n            1.全词表：搜集销量前5的竞品ASIN，H10-Cerebro反查，搜索量排倒序，剔除表现差的ASIN，最后保留约3个竞品ASIN，导出全词表\n            2.准词表：在全词表基础上筛选表现得分≥6的词组，计算每个词在总搜索量中的占比\n            3.词根表：用AI整理核心词根、属性词、功能词、场景词、目标人群词等，粘贴到Excel词根表，根据搜索量占比确定需要推广的核心词根\n            结构\n            广告活动命名规范：K(Keywords) + KR(Keyword Roots) + KR001/KR002...\n            商品定位：P(Position)\n            新品广告结构：简单结构，测款期低预算跑词\n          广告优化\n            不要过早关停广告，7天前数据才准确\n            预算管理\n            关键词/ASIN否定：高点击低转化时否定不相关词\n            关键词/ASIN提拔：表现好的词提拔到精准匹配\n            卡位操作：底cpc设置0.1，根据想打的广告位加bid，最高900%，即最高CPC=0.1*(1+900%)=1美金\n            否定逻辑\n            精准否定：否AB，不会触发AB、ABs\n            词组否定：否AB，不会触发AB、ABS、CAB、ABC、CABD\n            广告位出价优化方向：数据量不够的位置加bid放量；表现正常维持；表现差的位置降bid缩量\n            幅度：一般变化幅度0.1为佳，或最终竞价上下浮动10%\n            最终CPC竞价起始点：TOS 0.8；ROS 0.6；PP 0.4\n            CPC调整：正常幅度按0.1调，注意是最终cpc\n            数据优化：曝光低提高cpc；CTR低优化图片标题价格；CVR低优化Listing和评论；ACOS高否定词和降低cpc\n            利润最大化：利润=(广告单+自然单)*单价*(定价毛利-TACOS)\n        促销流量\n          工具：多件多折(绿标)、优惠券(绿标)、绑定套装、LD/BD\n        类目流量\n        影响者计划（红人视频）\n        流量闭环：A+\n      站外\n        社媒:Facebook群组,Instagram图文,TikTok短视频,YouTube测评开箱视频,Pinterest好物推荐\n        Deal站：Slickdeals,Kinja\n        SEM SEO:Google Ads\n    推广节奏\n      常规、季节性、断货、滞销\n    工具使用\n      西柚找词\n        关键词批量分析：作用判断关键词相关性，输入关键词和10个优秀同款ASIN，分析相关性\n        反查关键词：查看ASIN流量、关键词数量和自然、广告排名\n        关键词分析：广告放映机(某词下多产品广告位)、自然位放映机(某词下多产品自然位)\n      卖家精灵\n        判断关键词点击率：搜索点击率(市场平均)=搜索转化率/点击转化率\n        >80%说明关键词质量好；<30%说明关键词质量差\n  监控调整\n    领星\n      固定表格\n      产品表现数据列\n      广告数据列\n      库存\n      Listing评分：Review、Feedback";
+
+const SYSTEM_PROMPT = `你是一位专业的亚马逊运营顾问，你的知识库来源于以下这份亚马逊运营思维导图。请根据这份知识库的内容回答用户的问题。
+
+【亚马逊运营知识库】
+${KB}
+
+回答规则：
+1. 只根据知识库中的内容回答，不要添加知识库以外的信息
+2. 回答要清晰、专业、有逻辑，结构化呈现（可以用数字列表、分点）
+3. 涉及公式时要清晰列出，例如：ACOS = cpc / (cvr × price)
+4. 如果知识库中没有相关内容，直接说明"这个问题在文档中暂未涵盖"
+5. 回答简洁有重点，避免过于冗长
+6. 使用中文回答`;
+
+let history = [];
+let isLoading = false;
+
+// ── 付费墙配置 ──────────────────────────────
+const FREE_QUOTA = 5;
+const UNLOCK_CODE = 'kgtt99yg';
+const XIANYU_ID = 'xxmickeylee';
+const STORAGE_KEY = 'amz_kb_count';
+const UNLOCK_KEY = 'amz_kb_unlocked';
+
+function getCount() { return parseInt(localStorage.getItem(STORAGE_KEY) || '0'); }
+function setCount(n) { localStorage.setItem(STORAGE_KEY, n); }
+function isUnlocked() { return localStorage.getItem(UNLOCK_KEY) === '1'; }
+function unlock() { localStorage.setItem(UNLOCK_KEY, '1'); }
+
+function updateQuotaBar() {
+  if (isUnlocked()) {
+    document.getElementById('quota-bar').innerHTML =
+      '<span style="color:var(--green);font-size:12px">✅ 已解锁无限使用</span>';
+    return;
+  }
+  const used = getCount();
+  const left = Math.max(0, FREE_QUOTA - used);
+  document.getElementById('quota-bar').innerHTML =
+    `<span style="font-size:12px;color:var(--text-muted)">免费剩余 <strong style="color:${left>0?'var(--accent-light)':'#f87171'}">${left}</strong> 次提问</span>`;
+}
+
+function showPaywall() {
+  document.getElementById('paywall-mask').style.display = 'flex';
+}
+
+function closePaywall() {
+  document.getElementById('paywall-mask').style.display = 'none';
+}
+
+function tryUnlock() {
+  const code = document.getElementById('code-input').value.trim();
+  if (code === UNLOCK_CODE) {
+    unlock();
+    closePaywall();
+    updateQuotaBar();
+    addMsg('ai', '🎉 兑换成功！已为你解锁无限次提问，感谢支持！');
+  } else {
+    document.getElementById('code-error').style.display = 'block';
+  }
+}
+// ────────────────────────────────────────────
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMsg();
+  }
+}
+
+function ask(el) {
+  document.getElementById('input').value = el.textContent;
+  sendMsg();
+}
+
+function addMsg(role, text) {
+  const chat = document.getElementById('chat');
+  const welcome = chat.querySelector('.welcome');
+  if (welcome) welcome.remove();
+
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+
+  const avatar = document.createElement('div');
+  avatar.className = `avatar ${role}`;
+  avatar.textContent = role === 'ai' ? '🤖' : '你';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+
+  if (role === 'ai' && text === '__typing__') {
+    bubble.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+    div.id = 'typing-msg';
+  } else {
+    bubble.innerHTML = formatText(text);
+  }
+
+  div.appendChild(avatar);
+  div.appendChild(bubble);
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+function formatText(text) {
+  // Format the text with basic markdown-like styling
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<span class="formula">$1</span>')
+    .replace(/^(\d+\..+)$/gm, (m) => m)
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    .replace(/^(.+)$/, '<p>$1</p>');
+}
+
+async function sendMsg() {
+  if (isLoading) return;
+  const input = document.getElementById('input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  // 付费墙检查
+  if (!isUnlocked()) {
+    const used = getCount();
+    if (used >= FREE_QUOTA) {
+      showPaywall();
+      return;
+    }
+    setCount(used + 1);
+    updateQuotaBar();
+  }
+
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('sendBtn').disabled = true;
+
+  addMsg('user', text);
+  history.push({ role: 'user', content: text });
+
+  const typingEl = addMsg('ai', '__typing__');
+  isLoading = true;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: SYSTEM_PROMPT,
+        messages: history
+      })
+    });
+
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || '抱歉，获取回答失败，请重试。';
+
+    typingEl.remove();
+    addMsg('ai', reply);
+    history.push({ role: 'assistant', content: reply });
+
+    // Keep history to last 10 turns to avoid token overflow
+    if (history.length > 20) history = history.slice(-20);
+
+  } catch (err) {
+    typingEl.remove();
+    addMsg('ai', '⚠️ 请求失败，请检查网络或稍后重试。');
+    console.error(err);
+  }
+
+  isLoading = false;
+  document.getElementById('sendBtn').disabled = false;
+  document.getElementById('input').focus();
+}
+
+// 初始化
+updateQuotaBar();
+</script>
+
+<!-- 付费墙弹窗 -->
+<div id="paywall-mask" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:999;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#1a1d27;border:1px solid #2e3347;border-radius:16px;padding:28px 24px;max-width:360px;width:100%;text-align:center">
+    <div style="font-size:36px;margin-bottom:12px">🔒</div>
+    <h2 style="font-size:17px;font-weight:700;color:#e8eaf6;margin-bottom:8px">免费次数已用完</h2>
+    <p style="font-size:13px;color:#8b91b0;line-height:1.7;margin-bottom:20px">你已使用完 5 次免费提问机会。<br>付费解锁后，可无限次使用本知识库。</p>
+
+    <div style="background:#0f1117;border:1px solid #2e3347;border-radius:12px;padding:16px;margin-bottom:20px;text-align:left">
+      <p style="font-size:13px;font-weight:500;color:#e8eaf6;margin-bottom:8px">📦 如何购买：</p>
+      <p style="font-size:13px;color:#8b91b0;line-height:1.8">
+        1. 打开闲鱼 App<br>
+        2. 搜索用户 <strong style="color:#7b8fff">xxmickeylee</strong><br>
+        3. 购买「亚马逊运营知识库」<br>
+        4. 收到兑换码后在下方输入
+      </p>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <input id="code-input" type="text" placeholder="输入兑换码" 
+        style="flex:1;background:#0f1117;border:1px solid #2e3347;border-radius:8px;padding:9px 12px;color:#e8eaf6;font-size:14px;outline:none;font-family:inherit"
+        onkeydown="if(event.key==='Enter')tryUnlock()">
+      <button onclick="tryUnlock()" 
+        style="background:#5b6ef5;border:none;border-radius:8px;padding:9px 16px;color:#fff;font-size:14px;cursor:pointer;font-family:inherit;font-weight:500">
+        兑换
+      </button>
+    </div>
+    <p id="code-error" style="display:none;font-size:12px;color:#f87171;margin-bottom:10px">❌ 兑换码不正确，请重新输入</p>
+    <button onclick="closePaywall()" style="background:none;border:none;color:#5a607a;font-size:13px;cursor:pointer;font-family:inherit">暂不购买</button>
+  </div>
+</div>
+
+</body>
+</html>
